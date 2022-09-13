@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />  
+    <link rel="stylesheet" href="../static/common.css" />
+    <link rel="stylesheet" href="../static/home.css" />
+    <link rel="shortcut icon" href="../static/logo.jpeg" type="image/png">
+    <script src="../static/home.js"></script>
+    <title> Welcome to Lunchbox</title>
+  </head>
+  <body>
+
+    <div class="tab">
+      <button class="tablinks" onclick="openPage(event, 'Profile')" id="profile_tab">Profile</button>
+      <button class="tablinks" onclick="openPage(event, 'Meals')" id="meals_tab">Meals</button>
+      <button class="tablinks" onclick="openPage(event, 'Orders')" id="orders_tab">Orders</button>
+      <button class="tablinks" onclick="openPage(event, 'Dashboard')" id="dashboard_tab">Dashboard</button>
+      <button class="tablinks" onclick="openPage(event, 'Wallet')" id="wallet_tab">Wallet</button>
+    </div>
+
+    <div id="Profile" class="tabcontent">
+      <h2>Profile</h2>
+      {% if message %}
+        <p class="message">{{ message | safe }}</p>
+      {% endif %}
+
+      {% if user_profile['Profile Picture'] %}
+      <div>
+        <img class="profile_pic" src="{{ user_profile['Profile Picture'] }}"/>
+      </div>
+      {% endif %}
+
+	  <table id="user_profile">
+        {% for key, value in user_profile.items() %}
+          {% if user_profile[key] and key != 'Profile Picture' %}
+            <tr>
+              <th>{{ key }}</th>
+              <td>{{ value }}</td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+      </table>
+
+      <table>
+        <tr>
+          <td><button type="button" class="btn" onclick="openForm('user_form');">Update Profile</button></td>
+          <td><form action="/verify_email/{{ user_profile['Email'] }}" method="POST" enctype="multipart/form-data">
+            <input type="submit" class="btn" value="Verify Email" />
+          </form></td>
+          <td><form action="/">
+            <input type="submit" class="btn" value="Logout" />
+          </form></td>
+        </tr>
+      </table>
+
+      <div id="user_form" class="add_form">
+        <form action="/update_profile" method="POST" enctype="multipart/form-data">
+          <div class="input1">
+            <div class="left">
+              First Name
+              <input type="text" name="first_name_in" value="{{ user_profile['First Name'] }}"/>
+            </div>
+            <div class="right">
+              Last Name
+              <input type="text" name="last_name_in" value="{{ user_profile['Last Name'] }}"/>
+            </div>
+          </div>
+          <div class="input1">
+            <div class="left">
+              Phone Number
+              <input type="text" name="phone_number_in" value="{{ user_profile['Phone Number'] }}"/>
+            </div>
+            <div class="right">
+              Venmo Id
+              <input type="text" name="venmo_id_in" value="{{ user_profile['Venmo Id'] }}"/>
+            </div>
+          </div>
+          <div class="input1">
+            <div class="left">
+              Address
+              <textarea name="address_in" rows="4">{{ user_profile['Address'] }}</textarea>
+            </div>
+            <div class="right">
+              <div>
+                Profile Picture
+              </div>
+              <input id="profile_pic" src="#" type="file" name="profile_pic" accept="image/*" class="pic_button">
+              <input type="submit" value="Save Profile" class="btn" onclick="openTab('profile_tab');"/>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="Meals" class="tabcontent">
+      <h2>Upcoming Meals</h2>
+
+      {% if message %}
+        <p class="message">{{ message | safe }}</p>
+      {% endif %}
+
+      <div>
+        {% for chef_id, meals in meals_dicts.items() %}
+          <div class="name_panel">
+            <div>
+              {% if chefs[chef_id]['Profile Picture'] %}
+                <img class="chef_pic" src="{{ chefs[chef_id]['Profile Picture'] }}"/>
+              {% else %}
+                <img class="chef_pic" src="../static/chef-profile-icon.png"/>
+              {% endif %}
+            </div>
+            <div class="chef_name">
+              <h2>Chef {{ chefs[chef_id]['First Name'] }}</h2>
+            </div>
+          </div>
+          {% for meal in meals %}
+            <tr>
+              <h3 class="meal_time">
+                <span>{{ meal['Date'] }} : </span>
+                <span class="green">{{ meal['Pickup Time'] }}</span>
+                <span> 
+                  <button type="button" class="btn right_btn" onclick="openForm('order_form_{{ chef_id }}_{{ loop.index }}');">Pick</button>
+                </span>
+              </h3>
+      
+                <div id="order_form_{{ chef_id }}_{{ loop.index }}" class="add_form">
+                    <form action="/place_order/{{ meal['Id'] }}/{{ chef_id }}/{{ meal['Date'] }}" method="POST" enctype="multipart/form-data">
+                        <div class="input1">
+                            <div class="left">
+                                <b>Item</b>
+                            </div>
+                                
+                            <div class="right">
+                                <b>Quantity</b>
+                            </div>
+                        </div>
+                        {% for item in meal['Items'] %}
+                            <div class="input1">
+                                <div class="left">
+                                    <p style="margin-top: 3px;">{{ loop.index }}. {{ item["Name"] }}</p>
+                                </div>
+                                    
+                                <div class="right">
+                                    <input class="qty" type="number" id="{{ item['Id'] }}_qty" name="{{ item['Id'] }}_qty" max="10" min="0">
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <div class="input1">
+                            <b>Notes:</b>
+                            <textarea name="notes_in" rows="2"></textarea>
+                        </div>
+
+                        <input type="submit" value="Place Order" class="btn" onclick="openTab('orders_tab');"/>
+                                
+                    </form>
+                </div>
+
+              {% for item in meal['Items'] %}
+                <div class="item">
+                  <div class="item_pic">
+                    {% if item['Picture'] and 'https://' in item['Picture'] %}
+                      <img class="item_pic" src="{{ item['Picture'] }}"/>
+                    {% else %}
+                      <img class="item_pic" src="../static/food-item-icon.png"/>
+                    {% endif %}
+                  </div>
+                  <div class="item_content">
+                    <div class="item_title">
+                      <p class="item_big"> {{ item["Name"] }} </p>
+                      <p class="item_small"> {{ item["Item Type"] }} </p>  
+                    </div>
+                    <div class="item_cost">
+                      <p class="item_big"> ${{ item["Cost"] }} </p>
+                      <p class="item_small"> {{ item["Portion Size"] }} </p>
+                    </div>
+                    <div class="item_description">
+                      <p class="item_description_text"> {{ item["Description"] }} </p>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+          <div style="height: 20px;"></div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div id="Orders" class="tabcontent">
+      <h2>Orders</h2>
+        {% if orders_dicts['Ready'] %}
+        <h3>Ready Orders ({{ orders_dicts['Ready']|length }})</h3>
+        <p> Please pick up the following orders</p>
+          {% for orders_dict in orders_dicts['Ready'] %}
+            <div class="order order_ready">
+                {% if orders_dict['Chef']['Profile Picture'] %}
+                <div>
+                <img class="order_pic" src="{{ orders_dict['Chef']['Profile Picture'] }}"/>
+                </div>  
+                {% endif %}
+                <h4> <span class="green order_num">{{ loop.index }} </span> Order Id: #{{ orders_dict['Id'] }}</span></h4>
+                <p> <b>Chef:</b> {{ orders_dict['Chef']['First Name'] }} {{ orders_dict['Chef']['Last Name'] }}</p>
+                <p> <b>Pickup Location:</b> {{ orders_dict['Chef']['Address'] }}</p>
+                <p> <b>Pickup Date:</b> {{ orders_dict['Date'] }}</p>
+                <table class="order_items">
+                <tr>
+                    <th>Item Name</th>
+                    <th>Quantity</th>
+                </tr>
+                {% for item in orders_dict['Order Items'] %}
+                <tr>
+                    <td>{{ item['Item Name']}}</td>
+                    <td>{{ item['Quantity']}}</td>
+                </tr>
+                {% endfor %}
+                </table>
+                {% if orders_dict['Notes'] %}
+                <p> <b>Notes:</b> {{ orders_dict['Notes'] }}</p>
+                {% endif %}
+                <p> <b>Total Cost:</b> {{ orders_dict['Total Cost'] }}</p>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        {% if orders_dicts['Placed'] %}
+          <h3>Current Orders ({{ orders_dicts['Placed']|length }})</h3>
+          {% for orders_dict in orders_dicts['Placed'] %}
+            <div class="order">
+              {% if orders_dict['Chef']['Profile Picture'] %}
+              <div>
+                <img class="order_pic" src="{{ orders_dict['Chef']['Profile Picture'] }}"/>
+              </div>  
+              {% endif %}
+              <h4> <span class="green order_num">{{ loop.index }} </span> Order Id: #{{ orders_dict['Id'] }}</span></h4>
+              <p> <b>Chef:</b> {{ orders_dict['Chef']['First Name'] }} {{ orders_dict['Chef']['Last Name'] }}</p>
+              <p> <b>Pickup Location:</b> {{ orders_dict['Chef']['Address'] }}</p>
+              <p> <b>Pickup Date:</b> {{ orders_dict['Date'] }}</p>
+              <table class="order_items">
+                <tr>
+                  <th>Item Name</th>
+                  <th>Quantity</th>
+                </tr>
+                {% for item in orders_dict['Order Items'] %}
+                <tr>
+                  <td>{{ item['Item Name']}}</td>
+                  <td>{{ item['Quantity']}}</td>
+                </tr>
+                {% endfor %}
+              </table>
+              {% if orders_dict['Notes'] %}
+              <p> <b>Notes:</b> {{ orders_dict['Notes'] }}</p>
+              {% endif %}
+              <p> <b>Total Cost:</b> {{ orders_dict['Total Cost'] }}</p>
+            </div>
+          {% endfor %}
+        {% else %}
+            <h3>Current Orders (0)</h3>
+            <p>No current orders</p>
+        {% endif %}
+
+        {% if orders_dicts['Complete'] %}
+        <h3>Past Orders ({{ orders_dicts['Complete']|length }})</h3>
+          {% for orders_dict in orders_dicts['Complete'] %}
+            <div class="order order_past">
+            {% if orders_dict['Chef']['Profile Picture'] %}
+            <div>
+                <img class="order_pic" src="{{ orders_dict['Chef']['Profile Picture'] }}"/>
+            </div>  
+            {% endif %}
+            <h4> <span class="green order_num">{{ loop.index }} </span> Order Id: #{{ orders_dict['Id'] }}</span></h4>
+            <p> <b>Chef:</b> {{ orders_dict['Chef']['First Name'] }} {{ orders_dict['Chef']['Last Name'] }}</p>
+            <table class="order_items">
+                <tr>
+                <th>Item Name</th>
+                <th>Quantity</th>
+                </tr>
+                {% for item in orders_dict['Order Items'] %}
+                <tr>
+                <td>{{ item['Item Name']}}</td>
+                <td>{{ item['Quantity']}}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% if orders_dict['Notes'] %}
+            <p> <b>Notes:</b> {{ orders_dict['Notes'] }}</p>
+            {% endif %}
+            <p> <b>Total Cost:</b> {{ orders_dict['Total Cost'] }}</p>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+
+    <div id="Dashboard" class="tabcontent">
+        <h2>Dashboard</h2>
+        <p>Your food analysis (Coming Soon)</p>
+    </div>
+
+    <div id="Wallet" class="tabcontent">
+        <h2>Wallet</h2>
+        <p>Your transactions (Coming Soon)</p>
+    </div>
+
+    <script>openTab("{{ page }}_tab");</script>
+    
+  </body>
+</html> 
